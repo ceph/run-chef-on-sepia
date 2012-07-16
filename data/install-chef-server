@@ -53,7 +53,15 @@ sudo apt-get update
 sudo env DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical \
   apt-get -q install --no-install-recommends --assume-yes -- chef-server
 
-install -d -m0700 ~/.chef
-sudo knife configure --initial --defaults --user='admin' --key="$HOME/.chef/admin.pem" --server-url="$SERVER_URL" --repository="$HOME/chef"
-sudo chmod u=r,go= ~/.chef/admin.pem ~/.chef/knife.rb
-sudo chown "$(id -u):$(id -g)" ~/.chef/admin.pem ~/.chef/knife.rb
+# be careful to handle both running via cloud-init or via "ssh
+# ubuntu@... <script".. such an ugly kludge
+install -d -m0700 --owner=ubuntu --group=ubuntu /home/ubuntu/.chef
+sudo knife configure --initial --defaults --user='admin' --key="/home/ubuntu/.chef/admin.pem" --server-url="$SERVER_URL" --repository="/home/ubuntu/chef"
+if [ "$(id -u -n)" = "root" ]; then
+    # the config gets written in the wrong place when running as root,
+    # fix it up
+    mv /root/.chef/knife.rb /home/ubuntu/.chef/knife.rb
+    rmdir /root/.chef
+fi
+sudo chmod u=r,go= /home/ubuntu/.chef/admin.pem /home/ubuntu/.chef/knife.rb
+sudo chown ubuntu:ubuntu ~ubuntu/.chef/admin.pem ~ubuntu/.chef/knife.rb
