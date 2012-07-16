@@ -88,11 +88,17 @@ def main():
                 ],
             )
 
-    print 'Your Chef server vm is now running at'
+    print 'Your Chef server vm is currently installing at'
     print
     print '  ssh ubuntu@{hostname}.front.sepia.ceph.com'.format(
                 hostname=hostname,
                 )
+    print
+    print 'and you can monitor the Chef install progress with'
+    print
+    print '  tail -f /var/log/cloud-init-output.log'
+    print
+    print '(the DNS name will work only after DHCP has completed)'
 
 if __name__ == '__main__':
     sys.exit(main())
