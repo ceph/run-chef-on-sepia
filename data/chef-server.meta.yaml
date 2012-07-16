@@ -1,0 +1,5 @@
+downburst:
+  ram: 1048576
+  disk-size: 10485760000
+  networks:
+    - source: front

@@ -1,0 +1,52 @@
+#!/usr/bin/python
+import argparse
+import os
+import subprocess
+import sys
+import yaml
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description='Install Chef server software on remote vm',
+        )
+    parser.add_argument(
+        'config_path',
+        metavar='CONFIG_YAML',
+        help='config file to read',
+        )
+    args = parser.parse_args()
+    with file(args.config_path) as f:
+        args.config = yaml.safe_load(f)
+    return args
+
+
+def main():
+    args = parse_args()
+
+    hostname = 'chef-{name}-server'.format(
+        name=args.config['name'],
+        )
+    dnsname = '{hostname}.front.sepia.ceph.com'.format(
+        hostname=hostname,
+        )
+
+    script_path = os.path.join(
+        os.path.dirname(__file__),
+        'data',
+        'install-chef-server',
+        )
+    with file(script_path, 'rb') as script:
+        subprocess.check_call(
+            args=[
+                'ssh',
+                'ubuntu@{dnsname}'.format(dnsname=dnsname),
+                '-T',
+                '--',
+                ],
+            stdin=script,
+            )
+
+
+if __name__ == '__main__':
+    sys.exit(main())

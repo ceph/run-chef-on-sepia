@@ -1,0 +1,112 @@
+#!/usr/bin/python
+import argparse
+import os
+import subprocess
+import sys
+import tempfile
+import yaml
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description='Create Chef node',
+        )
+    parser.add_argument(
+        'config_path',
+        metavar='CONFIG_YAML',
+        help='config file to read',
+        )
+    parser.add_argument(
+        'nodename',
+        metavar='NODENAME',
+        help='name for this node',
+        )
+    args = parser.parse_args()
+    with file(args.config_path) as f:
+        args.config = yaml.safe_load(f)
+    return args
+
+
+def main():
+    args = parse_args()
+
+    uri = args.config['uri']
+    hostname = 'chef-{name}-node-{nodename}'.format(
+        name=args.config['name'],
+        nodename=args.nodename,
+        )
+
+    meta = []
+
+    validation_path = os.path.join(
+        os.path.expanduser('~/.chef'),
+        'knife-{name}-validation.pem'.format(
+            name=args.config['name'],
+            ),
+        )
+    with file(validation_path, 'rb') as f:
+        validation_key = f.read()
+    meta.append(
+        """#!/bin/sh
+set -e
+
+install -d -m0755 /etc/chef
+tee /etc/chef/validation.pem >/dev/null <<'EOF'
+"""
+        + validation_key
+        + "\nEOF\n"
+        )
+
+    install_path = os.path.join(
+        os.path.dirname(__file__),
+        'data',
+        'install-chef-client',
+        )
+    with file(install_path, 'rb') as f:
+        meta.append(f.read())
+
+    with tempfile.NamedTemporaryFile(
+        suffix='.user.yaml',
+        ) as meta_fp:
+        meta_fp.write('#cloud-config-archive\n\n')
+        yaml.safe_dump(
+            data=meta,
+            stream=meta_fp,
+            )
+        meta_fp.seek(0)
+        meta_fp.flush()
+        subprocess.check_call(
+            args=[
+                'downburst',
+                '--connect={uri}'.format(uri=uri),
+                'create',
+                '--meta-data={path}'.format(
+                    path=os.path.join(
+                        os.path.dirname(__file__),
+                        'data',
+                        'chef-node.meta.yaml',
+                        ),
+                    ),
+                '--user-data={path}'.format(
+                    path=os.path.join(
+                        os.path.dirname(__file__),
+                        'data',
+                        'chef-node.user.yaml',
+                        ),
+                    ),
+                '--user-data={path}'.format(
+                    path=meta_fp.name,
+                    ),
+                '--',
+                hostname,
+                ],
+            )
+
+    print 'Your Chef node vm is now running at'
+    print
+    print '  ssh ubuntu@{hostname}.front.sepia.ceph.com'.format(
+                hostname=hostname,
+                )
+
+if __name__ == '__main__':
+    sys.exit(main())

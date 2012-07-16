@@ -1,0 +1,12 @@
+#cloud-config-archive
+
+# passwordless ubuntu is nice
+- |
+  #!/bin/sh
+  exec passwd -d ubuntu
+
+- |
+  #cloud-config
+  # Capture all subprocess output into a logfile
+  # Useful for troubleshooting cloud-init issues
+  output: {all: '| tee -a /var/log/cloud-init-output.log'}

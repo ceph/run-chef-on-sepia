@@ -1,0 +1,71 @@
+#!/usr/bin/python
+import argparse
+import os
+import re
+import subprocess
+import sys
+import yaml
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description='Create Chef server node',
+        )
+    parser.add_argument(
+        'config_path',
+        metavar='CONFIG_YAML',
+        help='config file to read',
+        )
+    args = parser.parse_args()
+    with file(args.config_path) as f:
+        args.config = yaml.safe_load(f)
+    CHEF_NAME_RE = re.compile('^[a-z][a-z0-9-]*$')
+    if not CHEF_NAME_RE.match(args.config['name']):
+        parser.error(
+            'Name must be alphanumeric and dashes'
+            + ' and start with alpha: {name!r}'.format(
+                name=args.config['name'],
+                ),
+            )
+    return args
+
+
+def main():
+    args = parse_args()
+
+    uri = args.config['uri']
+    hostname = 'chef-{name}-server'.format(
+        name=args.config['name'],
+        )
+    subprocess.check_call(
+        args=[
+            'downburst',
+            '--connect={uri}'.format(uri=uri),
+            'create',
+            '--user-data={path}'.format(
+                path=os.path.join(
+                    os.path.dirname(__file__),
+                    'data',
+                    'chef-server.user.yaml',
+                    ),
+                ),
+            '--meta-data={path}'.format(
+                path=os.path.join(
+                    os.path.dirname(__file__),
+                    'data',
+                    'chef-server.meta.yaml',
+                    ),
+                ),
+            '--',
+            hostname,
+            ],
+        )
+
+    print 'Your Chef server vm is now running at'
+    print
+    print '  ssh ubuntu@{hostname}.front.sepia.ceph.com'.format(
+                hostname=hostname,
+                )
+
+if __name__ == '__main__':
+    sys.exit(main())

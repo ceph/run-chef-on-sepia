@@ -1,0 +1,138 @@
+#!/usr/bin/python
+import argparse
+import errno
+import os
+import socket
+import subprocess
+import sys
+import yaml
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description='Setup local knife to talk to chef server vm',
+        )
+    parser.add_argument(
+        'config_path',
+        metavar='CONFIG_YAML',
+        help='config file to read',
+        )
+    args = parser.parse_args()
+    with file(args.config_path) as f:
+        args.config = yaml.safe_load(f)
+    return args
+
+
+def maybe_mkdir(*a, **kw):
+    try:
+        os.mkdir(*a, **kw)
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            pass
+        else:
+            raise
+
+
+def main():
+    args = parse_args()
+
+    name = 'chef-{name}-server'.format(
+        name=args.config['name'],
+        )
+    workstation = socket.gethostname()
+
+    chef_path = os.path.expanduser('~/.chef')
+    maybe_mkdir(chef_path, 0700)
+
+    # TODO "knife client list --format=json --" first?
+
+    validation_path = os.path.join(
+        chef_path,
+        'knife-{name}-validation.pem'.format(name=args.config['name']),
+        )
+    with file(validation_path, 'wb') as f:
+        os.fchmod(f.fileno(), 0600)
+        subprocess.check_call(
+            args=[
+                'ssh',
+                'ubuntu@{name}.front.sepia.ceph.com'.format(
+                    name=name,
+                    ),
+                '--',
+                'sudo',
+                'cat',
+                '/etc/chef/validation.pem',
+                ],
+            stdout=f,
+            )
+
+    private_key_path = os.path.join(
+        chef_path,
+        'knife-{name}.pem'.format(name=args.config['name']),
+        )
+    with file(private_key_path, 'wb') as f:
+        os.fchmod(f.fileno(), 0600)
+        subprocess.check_call(
+            args=[
+                'ssh',
+                'ubuntu@{name}.front.sepia.ceph.com'.format(
+                    name=name,
+                    ),
+                '--',
+                'knife',
+                'client',
+                'create',
+                '--admin',
+                '--file=/dev/stdout',
+                '--disable-editing',
+                '--',
+                'admin-on-{hostname}'.format(
+                    hostname=workstation,
+                    ),
+                ],
+            stdout=f,
+            )
+
+    hostname = 'chef-{name}-server'.format(
+        name=args.config['name'],
+        )
+
+    conf_path = os.path.join(
+        chef_path,
+        'knife-{name}.rb'.format(name=args.config['name']),
+        )
+    with file(conf_path, 'w') as f:
+        f.write("""
+log_level                :info
+log_location             STDOUT
+node_name                'admin-on-{workstation}'
+client_key               'knife-{name}.pem'
+validation_client_name   'chef-validator'
+validation_key           "#{{ENV['HOME']}}/.chef/knife-{name}-validation.pem"
+chef_server_url          'http://{hostname}.front.sepia.ceph.com:4000/'
+cache_type               'BasicFile'
+cache_options({{ :path => "#{{ENV['HOME']}}/.chef/checksums" }})
+cookbook_path           ["#{{ENV['HOME']}}/chef"]
+""".lstrip().format(
+                workstation=workstation,
+                name=args.config['name'],
+                hostname=hostname,
+                ))
+
+    subprocess.check_call(
+        args=[
+            'knife',
+            'block',
+            'use',
+            '--yes',
+            '--',
+            args.config['name'],
+            ],
+        )
+
+    print 'Knife block is now pointed at {name}'.format(
+        name=args.config['name'],
+        )
+
+if __name__ == '__main__':
+    sys.exit(main())
