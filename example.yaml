@@ -1,8 +1,0 @@
-# This must be unique, and should include your username;
-# you can use it to separate multiple concurrent chef
-# environments. The recommended form is: jdoe-bug1234
-name: PUTYOURNAMEHERE
-
-# Choose the server to run on, vercoi03 - vercoi08; try to pick the
-# least busy one.
-uri: vercoiNN

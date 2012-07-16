@@ -12,9 +12,14 @@ def parse_args():
         description='Create Chef node',
         )
     parser.add_argument(
-        'config_path',
-        metavar='CONFIG_YAML',
-        help='config file to read',
+        'uri',
+        metavar='URI',
+        help='libvirt URI to connect to',
+        )
+    parser.add_argument(
+        'name',
+        metavar='NAME',
+        help='unique name to give this Chef setup',
         )
     parser.add_argument(
         'nodename',
@@ -22,17 +27,14 @@ def parse_args():
         help='name for this node',
         )
     args = parser.parse_args()
-    with file(args.config_path) as f:
-        args.config = yaml.safe_load(f)
     return args
 
 
 def main():
     args = parse_args()
 
-    uri = args.config['uri']
     hostname = 'chef-{name}-node-{nodename}'.format(
-        name=args.config['name'],
+        name=args.name,
         nodename=args.nodename,
         )
 
@@ -41,7 +43,7 @@ def main():
     validation_path = os.path.join(
         os.path.expanduser('~/.chef'),
         'knife-{name}-validation.pem'.format(
-            name=args.config['name'],
+            name=args.name,
             ),
         )
     with file(validation_path, 'rb') as f:
@@ -78,7 +80,7 @@ tee /etc/chef/validation.pem >/dev/null <<'EOF'
         subprocess.check_call(
             args=[
                 'downburst',
-                '--connect={uri}'.format(uri=uri),
+                '--connect={uri}'.format(uri=args.uri),
                 'create',
                 '--meta-data={path}'.format(
                     path=os.path.join(

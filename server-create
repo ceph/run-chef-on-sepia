@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import yaml
 
 
@@ -12,19 +13,22 @@ def parse_args():
         description='Create Chef server node',
         )
     parser.add_argument(
-        'config_path',
-        metavar='CONFIG_YAML',
-        help='config file to read',
+        'uri',
+        metavar='URI',
+        help='libvirt URI to connect to',
+        )
+    parser.add_argument(
+        'name',
+        metavar='NAME',
+        help='unique name to give this Chef setup',
         )
     args = parser.parse_args()
-    with file(args.config_path) as f:
-        args.config = yaml.safe_load(f)
     CHEF_NAME_RE = re.compile('^[a-z][a-z0-9-]*$')
-    if not CHEF_NAME_RE.match(args.config['name']):
+    if not CHEF_NAME_RE.match(args.name):
         parser.error(
             'Name must be alphanumeric and dashes'
             + ' and start with alpha: {name!r}'.format(
-                name=args.config['name'],
+                name=args.name,
                 ),
             )
     return args
@@ -33,33 +37,56 @@ def parse_args():
 def main():
     args = parse_args()
 
-    uri = args.config['uri']
     hostname = 'chef-{name}-server'.format(
-        name=args.config['name'],
+        name=args.name,
         )
-    subprocess.check_call(
-        args=[
-            'downburst',
-            '--connect={uri}'.format(uri=uri),
-            'create',
-            '--user-data={path}'.format(
-                path=os.path.join(
-                    os.path.dirname(__file__),
-                    'data',
-                    'chef-server.user.yaml',
-                    ),
-                ),
-            '--meta-data={path}'.format(
-                path=os.path.join(
-                    os.path.dirname(__file__),
-                    'data',
-                    'chef-server.meta.yaml',
-                    ),
-                ),
-            '--',
-            hostname,
-            ],
+
+    meta = []
+
+    install_path = os.path.join(
+        os.path.dirname(__file__),
+        'data',
+        'install-chef-server',
         )
+    with file(install_path, 'rb') as f:
+        meta.append(f.read())
+
+    with tempfile.NamedTemporaryFile(
+        suffix='.user.yaml',
+        ) as meta_fp:
+        meta_fp.write('#cloud-config-archive\n\n')
+        yaml.safe_dump(
+            data=meta,
+            stream=meta_fp,
+            )
+        meta_fp.seek(0)
+        meta_fp.flush()
+        subprocess.check_call(
+            args=[
+                'downburst',
+                '--connect={uri}'.format(uri=args.uri),
+                'create',
+                '--user-data={path}'.format(
+                    path=os.path.join(
+                        os.path.dirname(__file__),
+                        'data',
+                        'chef-server.user.yaml',
+                        ),
+                    ),
+                '--meta-data={path}'.format(
+                    path=os.path.join(
+                        os.path.dirname(__file__),
+                        'data',
+                        'chef-server.meta.yaml',
+                        ),
+                    ),
+                '--user-data={path}'.format(
+                    path=meta_fp.name,
+                    ),
+                '--',
+                hostname,
+                ],
+            )
 
     print 'Your Chef server vm is now running at'
     print
