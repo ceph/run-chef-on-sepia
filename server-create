@@ -51,6 +51,16 @@ def main():
     with file(install_path, 'rb') as f:
         meta.append(f.read())
 
+    meta.append(r"""
+#!/bin/sh
+set -e
+install -d -m0755 --owner=ubuntu --group=ubuntu /home/ubuntu/chef/cookbooks
+cd /home/ubuntu/chef/cookbooks
+sudo -H -u ubuntu knife cookbook site download apache2
+sudo -H -u ubuntu tar xzf apache2-*.tar.gz
+sudo -H -u ubuntu knife cookbook upload apache2
+""".lstrip())
+
     with tempfile.NamedTemporaryFile(
         suffix='.user.yaml',
         ) as meta_fp:
