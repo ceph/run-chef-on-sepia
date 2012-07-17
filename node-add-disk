@@ -1,0 +1,151 @@
+#!/usr/bin/python
+import argparse
+import libvirt
+import os
+import subprocess
+import sys
+import tempfile
+import yaml
+
+from lxml import etree
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description='Create Chef node',
+        )
+    parser.add_argument(
+        'uri',
+        metavar='URI',
+        help='libvirt URI to connect to',
+        )
+    parser.add_argument(
+        'name',
+        metavar='NAME',
+        help='unique name to give this Chef setup',
+        )
+    parser.add_argument(
+        'nodename',
+        metavar='NODENAME',
+        help='name for this node',
+        )
+    args = parser.parse_args()
+    return args
+
+
+def next_disk_name(pool, args):
+    PREFIX = 'chef-{name}-data-{nodename}-'.format(
+        name=args.name,
+        nodename=args.nodename,
+        )
+    SUFFIX = '.img'
+    def g():
+        for name in pool.listVolumes():
+            if not name.startswith(PREFIX):
+                continue
+            if not name.endswith(SUFFIX):
+                continue
+            num = name[len(PREFIX):-len(SUFFIX)]
+            try:
+                num = int(num)
+            except ValueError:
+                continue
+            yield num
+
+        # max raises a too-ambiguous exception on empty iterable, so
+        # make sure there's always a benign base value
+        yield -1
+
+    maxnum = max(g())
+    name = '{prefix}{num}{suffix}'.format(
+        prefix=PREFIX,
+        num=maxnum+1,
+        suffix=SUFFIX,
+        )
+    return name
+
+
+def template_volume(
+    name,
+    capacity=0,
+    format_=None,
+    ):
+    root = etree.Element('volume')
+    etree.SubElement(root, 'name').text = name
+    etree.SubElement(root, 'capacity').text = '{0:d}'.format(capacity)
+    etree.SubElement(root, 'allocation').text = '0'
+    target = etree.SubElement(root, 'target')
+    if format_ is None:
+        format_ = 'qcow2'
+    etree.SubElement(target, 'format', type=format_)
+    return root
+
+
+def b26_decode(s):
+    num = 0
+    for c in s:
+        num *= 26
+        num += ord(c)-ord('a')+1
+    return num
+
+
+def b26_encode(num):
+    assert num > 0
+    s = ''
+    while num > 0:
+        num, this = divmod(num, 26)
+        c = chr(ord('a')+this-1)
+        s = c+s
+    return s
+
+
+def find_free_dev(dom):
+    xml = dom.XMLDesc(flags=0)
+    tree = etree.fromstring(xml)
+    devs = tree.xpath('/domain/devices/disk[@device="disk"]/target/@dev')
+    if not devs:
+        return 'vda'
+    highest = max(devs)
+    assert highest.startswith('vd')
+    highest = highest[len('vd'):]
+
+    num = b26_decode(highest)
+    return 'vd'+b26_encode(num+1)
+
+
+def main():
+    args = parse_args()
+
+    hostname = 'chef-{name}-node-{nodename}'.format(
+        name=args.name,
+        nodename=args.nodename,
+        )
+
+    conn = libvirt.open(args.uri)
+
+    dom = conn.lookupByName(hostname)
+
+    pool = conn.storagePoolLookupByName('default')
+    disk = next_disk_name(pool=pool, args=args)
+    xml = template_volume(
+        name=disk,
+        capacity=10*1024*1024*1024,
+        )
+    vdisk = pool.createXML(etree.tostring(xml), flags=0)
+
+    attachxml = etree.Element('disk', type='file', device='disk')
+    etree.SubElement(attachxml, 'driver', name='qemu', type='qcow2')
+    etree.SubElement(attachxml, 'source', file=vdisk.key())
+
+    dev = find_free_dev(dom)
+    etree.SubElement(attachxml, 'target', dev=dev, bus='virtio')
+
+    dom.attachDeviceFlags(
+        xml=etree.tostring(attachxml),
+        flags=libvirt.VIR_DOMAIN_AFFECT_CURRENT,
+        )
+    conn.close()
+
+
+if __name__ == '__main__':
+    sys.exit(main())

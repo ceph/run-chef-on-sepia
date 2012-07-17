@@ -91,6 +91,15 @@ Once the server is running, add nodes by running::
     ./node-create URI NAME NODENAME
     ./node-create URI NAME ANOTHERNODE
 
------
+The nodes will register with the Chef server automatically, as seen in
+``knife node list``.
 
-TODO write more
+At this time, the node will not have any data disks. To later add
+them, run::
+
+    ./node-add-disk URI NAME NODENAME
+
+To make Ceph use them, ssh in to the node and run::
+
+    ssh ubuntu@chef-NAME-node-NODENAME
+    sudo ceph-disk-prepare /dev/vdXXX
