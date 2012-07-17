@@ -100,7 +100,7 @@ def main():
         'knife-{name}.rb'.format(name=args.name),
         )
     with file(conf_path, 'w') as f:
-        f.write("""
+        f.write(r"""
 log_level                :info
 log_location             STDOUT
 node_name                'admin-on-{workstation}'
