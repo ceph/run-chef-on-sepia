@@ -38,6 +38,13 @@ Test your libvirt client::
 
     virsh -c vercoi08 hostname
 
+Clone this repository (if you didn't already do that)::
+
+    git clone https://github.com/ceph/run-chef-on-sepia.git
+    cd run-chef-on-sepia
+
+Whenever you want to run one of the included commands, ``cd`` into
+this directory first.
 
 Also, to run ``knife`` operations, you can either always ssh to the
 chef server vm, or install Knife (from Chef) and `knife block`_.
