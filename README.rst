@@ -46,6 +46,11 @@ Clone this repository (if you didn't already do that)::
 Whenever you want to run one of the included commands, ``cd`` into
 this directory first.
 
+Check that you have the needed dependencies installed. If not, do as
+the output recommends::
+
+   ./check-dependencies
+
 Also, to run ``knife`` operations, you can either always ssh to the
 chef server vm, or install Knife (from Chef) and `knife block`_.
 (TODO this is not optional right now because we run
