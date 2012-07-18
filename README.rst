@@ -10,8 +10,8 @@ Installation
 
 Install Downburst_ and set it up. The ``downburst`` command must be in
 your ``PATH``; for example, symlink
-``~/src/downburst/virtualenv/bin/downburst`` into ``~/bin/`` and add
-``PATH="$PATH:$HOME/bin"`` in your ``.bashrc``.
+``~/src/downburst/virtualenv/bin/downburst`` into ``~/bin/downburst``
+and add ``PATH="$PATH:$HOME/bin"`` in your ``.bashrc``.
 
 .. _Downburst: https://github.com/ceph/downburst
 
