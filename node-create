@@ -30,6 +30,27 @@ def parse_args():
     return args
 
 
+def get_validation_key(name):
+    args=[
+        'ssh',
+        'ubuntu@chef-{name}-server.front.sepia.ceph.com'.format(
+            name=name,
+            ),
+        '--',
+        'sudo',
+        'cat',
+        '/etc/chef/validation.pem',
+        ]
+    p = subprocess.Popen(
+        args=args,
+        stdout=subprocess.PIPE,
+        )
+    (validation_key, _) = p.communicate()
+    if p.returncode != 0:
+        raise subprocess.CalledProcessError(p.returncode, args)
+    return validation_key
+
+
 def main():
     args = parse_args()
 
@@ -40,14 +61,7 @@ def main():
 
     meta = []
 
-    validation_path = os.path.join(
-        os.path.expanduser('~/.chef'),
-        'knife-{name}-validation.pem'.format(
-            name=args.name,
-            ),
-        )
-    with file(validation_path, 'rb') as f:
-        validation_key = f.read()
+    validation_key = get_validation_key(name=args.name)
     meta.append(
         """#!/bin/sh
 set -e
