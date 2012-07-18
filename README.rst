@@ -85,6 +85,14 @@ Things you need:
 - ``NAME``: pick a unique name for your run -- it should include your
   username in it, for example ``jdoe-bug1234``
 
+For one test run, you'll keep using the same ``NAME``. Different
+``NAME`` values are used to separate different users from each other,
+and you can use it to work on multiple setups at the same time.
+
+There is no need to include things like ``chef`` in ``NAME``; the
+virtual machines will name ``chef-`` in their name, and they will be
+identified as ``server`` or ``node`` as appropriate.
+
 
 TODO document config creation, or migrate to cli
 
