@@ -122,6 +122,8 @@ them, run::
 
     ./node-add-disk URI NAME NODENAME
 
+A typical ``NODENAME`` might just be a running sequence number.
+
 To make Ceph use them, ssh in to the node and run::
 
     ssh ubuntu@chef-NAME-node-NODENAME
