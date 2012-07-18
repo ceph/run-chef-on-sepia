@@ -8,6 +8,9 @@ Here are quick & ugly scripts to run Chef on Sepia Vercoi.
 Installation
 ============
 
+You need a VPN connection to the Sepia lab, and you need your SSH
+public key authorized.
+
 Install Downburst_ and set it up. The ``downburst`` command must be in
 your ``PATH``; for example, symlink
 ``~/src/downburst/virtualenv/bin/downburst`` into ``~/bin/downburst``
