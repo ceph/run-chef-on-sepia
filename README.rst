@@ -124,7 +124,8 @@ them, run::
 
 A typical ``NODENAME`` might just be a running sequence number.
 
-To make Ceph use them, ssh in to the node and run::
+After you've installed Ceph using Chef roles, to make Ceph use the
+disk, ssh in to the node and run::
 
     ssh ubuntu@chef-NAME-node-NODENAME
     sudo ceph-disk-prepare /dev/vdXXX
