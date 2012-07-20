@@ -100,7 +100,10 @@ To create the server node::
 
     ./server-create URI NAME
 
-And wait for the installation to complete.
+And wait for the installation to complete. Use ``virt-manager`` to see
+the console and manage the virtual machines; install it with ``sudo
+apt-get install virt-manager``.
+
 (TODO make that more interactive, wait until completion)
 
 Optionally, if you want to run ``knife`` locally::
