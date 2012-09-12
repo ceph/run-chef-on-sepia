@@ -2,7 +2,7 @@
  Run Chef on Sepia
 ===================
 
-Here are quick & ugly scripts to run Chef on Sepia Vercoi.
+Here are quick & ugly scripts to run Chef on Sepia Vercoi/Senta.
 
 
 Installation
@@ -31,6 +31,10 @@ Add aliases to avoid typing so much::
 	    'vercoi06=qemu+ssh://ubuntu@vercoi06.front.sepia.ceph.com/system?no_tty',
 	    'vercoi07=qemu+ssh://ubuntu@vercoi07.front.sepia.ceph.com/system?no_tty',
 	    'vercoi08=qemu+ssh://ubuntu@vercoi08.front.sepia.ceph.com/system?no_tty',
+            'senta01=qemu+ssh://ubuntu@senta01.front.sepia.ceph.com/system?no_tty',
+            'senta02=qemu+ssh://ubuntu@senta02.front.sepia.ceph.com/system?no_tty',
+            'senta03=qemu+ssh://ubuntu@senta03.front.sepia.ceph.com/system?no_tty',
+            'senta04=qemu+ssh://ubuntu@senta04.front.sepia.ceph.com/system?no_tty',
 	    ]
     EOF
 
@@ -65,6 +69,9 @@ Picking a server to use
 
 There are several servers. You need to pick one. There is currently no
 automation to help you pick.
+
+The senta servers are the most recently deployed machines and likely
+to be less loaded.
 
 Avoid ``vercoi01`` and ``vercoi02``, they will be running more
 production-ish vms.
